@@ -30,11 +30,11 @@
     * `scikit-learn` (用于 TF-IDF 和余弦相似度)
     * `python-Levenshtein` (用于 Levenshtein 评估)
     * `tqdm` (用于显示进度条)
-* GloVe 词嵌入：`lsh_minhash_*.py` 和 `cosine_glove_eval.py` 脚本需要。请下载所需的 GloVe 文件（例如 `glove.6B.100d.txt`），并在运行相关脚本时提供其路径。可在此处下载：[https://nlp.stanford.edu/projects/glove/](https://nlp.stanford.edu/projects/glove/)
+* GloVe 词嵌入：`lsh_minhash_*.py` 和 `cosine_glove_eval.py` 脚本需要。请下载所需的 GloVe 参数文件，并在运行相关脚本时提供其路径。可在此处下载：[https://drive.google.com/file/d/1Qp92johqxDWPIh97AQMV8fHEOA7rbPz3/view?usp=sharing](https://drive.google.com/file/d/1Qp92johqxDWPIh97AQMV8fHEOA7rbPz3/view?usp=sharing).
 
 通常可以使用 pip 安装 Python 库：
 ```bash
-pip install pandas numpy datasets datasketch nltk scikit-learn python-Levenshtein tqdm
+pip install pandas numpy datasets nltk scikit-learn python-Levenshtein tqdm
 ```
 
 

@@ -20,7 +20,7 @@
 
 ## 环境要求
 
-* Python 3.x
+* Python 3.11
 * 必需的 Python 库：
     * `pandas`
     * `numpy`
@@ -36,17 +36,13 @@
 ```bash
 pip install pandas numpy datasets datasketch nltk scikit-learn python-Levenshtein tqdm
 ```
-您可能还需要下载 NLTK 数据包（脚本在需要时会尝试自动下载）：
-```python
-import nltk
-nltk.download('punkt')
-nltk.download('stopwords')
-```
+
 
 ## 快速开始
 
 1.  **下载数据：**
     ```bash
+    cd dm/data
     python dm/data/get_data.py
     # 这将在当前目录下创建 ./validation/validation.parquet 和 ./test/test.parquet 文件
     ```

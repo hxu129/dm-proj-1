@@ -1,53 +1,54 @@
-# 使用 LSH 进行文本相似度计算与评估
+[![Chinese Version](https://img.shields.io/badge/README-中文版本-blue)](README_CN.md)
 
-本项目实现了多种局部敏感哈希（Locality-Sensitive Hashing, LSH）技术（包括位采样 Bit Sampling、最小哈希 MinHash、相似哈希 SimHash），用于在大型数据集中高效地查找可能相似的文本文档，特别是基于 `wiki40b` 数据集中由 `wikidata_id` 标识的维基百科文章。项目还包含了评估脚本，用以评估找到的候选对的相似度，使用了多种标准度量方法，如 Jaccard 相似度、余弦相似度（基于 TF-IDF 或 GloVe 词嵌入）以及 Levenshtein 编辑距离。
+# Text Similarity Calculation and Evaluation Using LSH
 
-## 项目架构
+This project implements various Locality-Sensitive Hashing (LSH) techniques (including Bit Sampling, MinHash, and SimHash) to efficiently find potentially similar text documents in large datasets, particularly Wikipedia articles identified by `wikidata_id` in the `wiki40b` dataset. The project also includes evaluation scripts to assess the similarity of candidate pairs found using various standard metrics such as Jaccard similarity, cosine similarity (based on TF-IDF or GloVe word embeddings), and Levenshtein edit distance.
 
-项目主要包含三个目录：
+## Project Structure
 
-1.  `data/`：包含下载所需数据集的脚本。
-    * 请将下载好的parquet文件分别放在`data/test`和`data/validation`文件夹下，`merge_parquet.py`脚本会合并分片文件。
-2.  `find_pair/`：包含实现不同 LSH 算法以查找候选相似对的脚本。
-    * 以 `_inside.py` 结尾的脚本用于查找**单个**输入数据集**内部**的相似对。
-    * 以 `_between.py` 结尾的脚本用于查找**两个**输入数据集**之间**的相似对（一个作为查询集，另一个作为索引集）。
-    * 使用的技术：位采样 (Bit Sampling)、最小哈希 (MinHash, 需 GloVe 支持)、相似哈希 (SimHash)。
-    * 输出：JSON 文件，列出潜在的相似对（包含 `wikidata_id` 和 `similar_items` 列表）。
-3.  `evaluation/`：包含评估 `find_pair` 脚本找到的候选对相似度的脚本。
-    * 脚本实现了不同的相似度度量：余弦相似度 (GloVe)、Jaccard 相似度、Levenshtein 编辑距离、余弦相似度 (TF-IDF)。
-    * 输入：原始的 Parquet 数据文件和包含候选对的 JSON 文件。
-    * 输出：JSON 文件，包含评估摘要（平均相似度、分布）以及每个相似对的详细得分。
+The project consists of three main directories:
 
-## 环境要求
+1.  `data/`: Contains scripts for downloading the required datasets.
+    * You need to download the dataset from [Hugging Face wiki40b repository](https://huggingface.co/datasets/google/wiki40b/tree/refs%2Fconvert%2Fparquet/en) and place the corresponding parquet files in the test and validation folders respectively. The `merge_parquet.py` script will merge the shard files.
+2.  `find_pair/`: Contains scripts implementing different LSH algorithms to find candidate similar pairs.
+    * Scripts ending with `_inside.py` are used to find similar pairs **within** a **single** input dataset.
+    * Scripts ending with `_between.py` are used to find similar pairs **between two** input datasets (one as a query set, the other as an index set).
+    * Techniques used: Bit Sampling, MinHash (requires GloVe support), SimHash.
+    * Output: JSON files listing potential similar pairs (containing `wikidata_id` and a list of `similar_items`).
+3.  `evaluation/`: Contains scripts for evaluating the similarity of candidate pairs found by the `find_pair` scripts.
+    * The scripts implement different similarity metrics: cosine similarity (GloVe), Jaccard similarity, Levenshtein edit distance, cosine similarity (TF-IDF).
+    * Input: Original Parquet data files and JSON files containing candidate pairs.
+    * Output: JSON files containing evaluation summaries (average similarity, distribution) and detailed scores for each similar pair.
+
+## Environment Requirements
 
 * Python 3.11
-* 必需的 Python 库：
+* Required Python libraries:
     * `pandas`
     * `numpy`
-    * `datasets` (用于 `get_data.py`)
-    * `datasketch` (用于 MinHash 脚本)
-    * `nltk` (用于 Jaccard 和部分 MinHash 脚本)
-    * `scikit-learn` (用于 TF-IDF 和余弦相似度)
-    * `python-Levenshtein` (用于 Levenshtein 评估)
-    * `tqdm` (用于显示进度条)
-* GloVe 词嵌入：`lsh_minhash_*.py` 和 `cosine_glove_eval.py` 脚本需要。请下载所需的 GloVe 参数文件，并在运行相关脚本时提供其路径。可在此处下载：[https://drive.google.com/file/d/1Qp92johqxDWPIh97AQMV8fHEOA7rbPz3/view?usp=sharing](https://drive.google.com/file/d/1Qp92johqxDWPIh97AQMV8fHEOA7rbPz3/view?usp=sharing).
+    * `datasets` (for `get_data.py`)
+    * `datasketch` (for MinHash scripts)
+    * `nltk` (for Jaccard and some MinHash scripts)
+    * `scikit-learn` (for TF-IDF and cosine similarity)
+    * `python-Levenshtein` (for Levenshtein evaluation)
+    * `tqdm` (for displaying progress bars)
+* GloVe word embeddings: Required for `lsh_minhash_*.py` and `cosine_glove_eval.py` scripts. Please download the required GloVe parameter file and provide its path when running the relevant scripts. You can download it here: [https://drive.google.com/file/d/1Qp92johqxDWPIh97AQMV8fHEOA7rbPz3/view?usp=sharing](https://drive.google.com/file/d/1Qp92johqxDWPIh97AQMV8fHEOA7rbPz3/view?usp=sharing).
 
-通常可以使用 pip 安装 Python 库：
+Python libraries can typically be installed using pip:
 ```bash
 pip install pandas numpy datasets nltk scikit-learn python-Levenshtein tqdm
 ```
 
+## Quick Start
 
-## 快速开始
-
-1.  **下载数据：**
+1.  **Download the data:**
     ```bash
     cd data
     python data/get_data.py
-    # 这将在当前目录下创建 ./validation/validation.parquet 和 ./test/test.parquet 文件
+    # This will create ./validation/validation.parquet and ./test/test.parquet files in the current directory
     ```
 
-2.  **查找相似对（示例：在验证集内部使用 SimHash）：**
+2.  **Find similar pairs (example: using SimHash within the validation set):**
     ```bash
     python find_pair/lsh_simhash_inside.py \
         --input validation/validation.parquet \
@@ -57,7 +58,7 @@ pip install pandas numpy datasets nltk scikit-learn python-Levenshtein tqdm
         --hd 3
     ```
 
-3.  **评估找到的相似对（示例：使用 Jaccard 相似度）：**
+3.  **Evaluate the found similar pairs (example: using Jaccard similarity):**
     ```bash
     python evaluation/jaccard_eval.py \
         --parquet validation/validation.parquet \
@@ -65,111 +66,111 @@ pip install pandas numpy datasets nltk scikit-learn python-Levenshtein tqdm
         --output evaluation_jaccard_validation.json
     ```
 
-## 详细用法与脚本参数
+## Detailed Usage and Script Parameters
 
-### 数据下载
+### Data Download
 
 * **`data/get_data.py`**
-    * **目的：** 下载 `wiki40b/en` 数据集（验证集和测试集）并保存在本地。
-    * **参数：** 无。脚本会自动保存到 `validation/validation.parquet` 和 `test/test.parquet`。
-    * **用法：** `python data/get_data.py`
+    * **Purpose:** Download the `wiki40b/en` dataset (validation and test sets) and save them locally.
+    * **Parameters:** None. The script automatically saves to `validation/validation.parquet` and `test/test.parquet`.
+    * **Usage:** `python data/get_data.py`
 
-### 查找相似对 (`find_pair/`)
+### Finding Similar Pairs (`find_pair/`)
 
 * **`lsh_bit_sample_between.py`**
-    * **目的：** 使用 LSH (Bit Sampling) 技术查找两个 Parquet 文件之间的相似项。
-    * **参数：**
-        * `--input_a`: (必需) 第一个 Parquet 文件的路径（查询集）。
-        * `--input_b`: (必需) 第二个 Parquet 文件的路径（索引集）。
-        * `--output`: (必需) 输出 JSON 文件的路径。
-        * `--k`: (可选) 采样的位数 (`k_bits`)。默认值：`30`。
-        * `--bands`: (可选) LSH 的 band 数量。默认值：`10`。 (`k` 必须能被 `bands` 整除)。
-        * `--hd`: (可选) 最大汉明距离阈值。默认值：`3`。
-    * **用法：** `python find_pair/lsh_bit_sample_between.py --input_a file_a.parquet --input_b file_b.parquet --output output.json`
+    * **Purpose:** Find similar items between two Parquet files using LSH (Bit Sampling) technique.
+    * **Parameters:**
+        * `--input_a`: (Required) Path to the first Parquet file (query set).
+        * `--input_b`: (Required) Path to the second Parquet file (index set).
+        * `--output`: (Required) Path to the output JSON file.
+        * `--k`: (Optional) Number of bits to sample (`k_bits`). Default value: `30`.
+        * `--bands`: (Optional) Number of bands for LSH. Default value: `10`. (`k` must be divisible by `bands`).
+        * `--hd`: (Optional) Maximum Hamming distance threshold. Default value: `3`.
+    * **Usage:** `python find_pair/lsh_bit_sample_between.py --input_a file_a.parquet --input_b file_b.parquet --output output.json`
 
 * **`lsh_bit_sample_inside.py`**
-    * **目的：** 使用 LSH (Bit Sampling) 技术在单个 Parquet 文件内部查找相似项。
-    * **参数：**
-        * `--input`: (必需) 输入 Parquet 文件的路径。
-        * `--output`: (必需) 输出 JSON 文件的路径。
-        * `--k`: (可选) 采样的位数 (`k_bits`)。默认值：`30`。
-        * `--bands`: (可选) LSH 的 band 数量。默认值：`10`。 (`k` 必须能被 `bands` 整除)。
-        * `--hd`: (可选) 最大汉明距离阈值。默认值：`3`。
-    * **用法：** `python find_pair/lsh_bit_sample_inside.py --input data.parquet --output output.json`
+    * **Purpose:** Find similar items within a single Parquet file using LSH (Bit Sampling) technique.
+    * **Parameters:**
+        * `--input`: (Required) Path to the input Parquet file.
+        * `--output`: (Required) Path to the output JSON file.
+        * `--k`: (Optional) Number of bits to sample (`k_bits`). Default value: `30`.
+        * `--bands`: (Optional) Number of bands for LSH. Default value: `10`. (`k` must be divisible by `bands`).
+        * `--hd`: (Optional) Maximum Hamming distance threshold. Default value: `3`.
+    * **Usage:** `python find_pair/lsh_bit_sample_inside.py --input data.parquet --output output.json`
 
 * **`lsh_minhash_between.py`**
-    * **目的：** 使用 LSH (MinHash, 基于 GloVe 词嵌入) 查找两个 Parquet 文件之间的相似项。**需要 GloVe 文件。**
-    * **参数：**
-        * `--input_a`: (必需) 第一个 Parquet 文件的路径（查询集）。
-        * `--input_b`: (必需) 第二个 Parquet 文件的路径（索引集）。
-        * `--glove`: (必需) GloVe 词嵌入文本文件的路径 (例如 `glove.6B.100d.txt`)。
-        * `--output`: (必需) 输出 JSON 文件的路径。
-    * **用法：** `python find_pair/lsh_minhash_between.py --input_a file_a.parquet --input_b file_b.parquet --output output.json`
+    * **Purpose:** Find similar items between two Parquet files using LSH (MinHash, based on GloVe word embeddings). **Requires GloVe file.**
+    * **Parameters:**
+        * `--input_a`: (Required) Path to the first Parquet file (query set).
+        * `--input_b`: (Required) Path to the second Parquet file (index set).
+        * `--glove`: (Required) Path to the GloVe word embeddings text file (e.g., `glove.6B.100d.txt`).
+        * `--output`: (Required) Path to the output JSON file.
+    * **Usage:** `python find_pair/lsh_minhash_between.py --input_a file_a.parquet --input_b file_b.parquet --output output.json`
 
 * **`lsh_minhash_inside.py`**
-    * **目的：** 使用 LSH (MinHash, 基于 GloVe 词嵌入) 在单个 Parquet 文件内部查找相似项。**需要 GloVe 文件。**
-    * **参数：**
-        * `--input`: (必需) 输入 Parquet 文件的路径。
-        * `--output`: (必需) 输出 JSON 文件的路径。
-        * `--glove`: (必需) GloVe 词嵌入文本文件的路径 (例如 `glove.6B.100d.txt`)。
-        * `--bands`: (可选) LSH 的 band 数量。默认值：`32`。 (`perm` 必须能被 `bands` 整除)。
-        * `--perm`: (可选) MinHash 的置换数量 (`num_perm`)。默认值：`128`。
-    * **用法：** `python find_pair/lsh_minhash_inside.py --input data.parquet --output output.json --glove path/to/glove.6B.100d.txt`
+    * **Purpose:** Find similar items within a single Parquet file using LSH (MinHash, based on GloVe word embeddings). **Requires GloVe file.**
+    * **Parameters:**
+        * `--input`: (Required) Path to the input Parquet file.
+        * `--output`: (Required) Path to the output JSON file.
+        * `--glove`: (Required) Path to the GloVe word embeddings text file (e.g., `glove.6B.100d.txt`).
+        * `--bands`: (Optional) Number of bands for LSH. Default value: `32`. (`perm` must be divisible by `bands`).
+        * `--perm`: (Optional) Number of permutations for MinHash (`num_perm`). Default value: `128`.
+    * **Usage:** `python find_pair/lsh_minhash_inside.py --input data.parquet --output output.json --glove path/to/glove.6B.100d.txt`
 
 * **`lsh_simhash_between.py`**
-    * **目的：** 使用 LSH (SimHash, 64位) 查找两个 Parquet 文件之间的相似项。
-    * **参数：**
-        * `--input_a`: (必需) 第一个 Parquet 文件的路径（查询集）。
-        * `--input_b`: (必需) 第二个 Parquet 文件的路径（索引集）。
-        * `--output`: (必需) 输出 JSON 文件的路径。
-        * `--bands`: (可选) LSH 的 band 数量。默认值：`4`。 (`bands * rows` 必须等于 64)。
-        * `--rows`: (可选) LSH 中每个 band 的行数。默认值：`16`。 (`bands * rows` 必须等于 64)。
-        * `--hd`: (可选) 最大汉明距离阈值。默认值：`3`。
-    * **用法：** `python find_pair/lsh_simhash_between.py --input_a file_a.parquet --input_b file_b.parquet --output output.json`
+    * **Purpose:** Find similar items between two Parquet files using LSH (SimHash, 64-bit).
+    * **Parameters:**
+        * `--input_a`: (Required) Path to the first Parquet file (query set).
+        * `--input_b`: (Required) Path to the second Parquet file (index set).
+        * `--output`: (Required) Path to the output JSON file.
+        * `--bands`: (Optional) Number of bands for LSH. Default value: `4`. (`bands * rows` must equal 64).
+        * `--rows`: (Optional) Number of rows per band for LSH. Default value: `16`. (`bands * rows` must equal 64).
+        * `--hd`: (Optional) Maximum Hamming distance threshold. Default value: `3`.
+    * **Usage:** `python find_pair/lsh_simhash_between.py --input_a file_a.parquet --input_b file_b.parquet --output output.json`
 
 * **`lsh_simhash_inside.py`**
-    * **目的：** 使用 LSH (SimHash, 64位) 在单个 Parquet 文件内部查找相似项。
-    * **参数：**
-        * `--input`: (必需) 输入 Parquet 文件的路径。
-        * `--output`: (必需) 输出 JSON 文件的路径。
-        * `--bands`: (可选) LSH 的 band 数量。默认值：`4`。 (`bands * rows` 必须等于 64)。
-        * `--rows`: (可选) LSH 中每个 band 的行数。默认值：`16`。 (`bands * rows` 必须等于 64)。
-        * `--hd`: (可选) 最大汉明距离阈值。默认值：`3`。
-    * **用法：** `python find_pair/lsh_simhash_inside.py --input data.parquet --output output.json`
+    * **Purpose:** Find similar items within a single Parquet file using LSH (SimHash, 64-bit).
+    * **Parameters:**
+        * `--input`: (Required) Path to the input Parquet file.
+        * `--output`: (Required) Path to the output JSON file.
+        * `--bands`: (Optional) Number of bands for LSH. Default value: `4`. (`bands * rows` must equal 64).
+        * `--rows`: (Optional) Number of rows per band for LSH. Default value: `16`. (`bands * rows` must equal 64).
+        * `--hd`: (Optional) Maximum Hamming distance threshold. Default value: `3`.
+    * **Usage:** `python find_pair/lsh_simhash_inside.py --input data.parquet --output output.json`
 
-### 评估相似对 (`evaluation/`)
+### Evaluating Similar Pairs (`evaluation/`)
 
 * **`cosine_glove_eval.py`**
-    * **目的：** 使用基于 GloVe 词嵌入的余弦相似度评估候选对。**需要 GloVe 文件。**
-    * **参数：**
-        * `--parquet`: (必需) 包含文本数据的原始 Parquet 文件路径。
-        * `--candidates`: (必需) 由 `find_pair` 脚本生成的 JSON 文件路径。
-        * `--glove`: (必需) GloVe 词嵌入文本文件的路径 (例如 `glove.6B.100d.txt`)。
-        * `--output`: (必需) 输出评估结果的 JSON 文件路径。
-    * **用法：** `python dm/evaluation/cosine_glove_eval.py --parquet data.parquet --candidates candidates.json --glove path/to/glove.txt --output evaluation.json`
+    * **Purpose:** Evaluate candidate pairs using cosine similarity based on GloVe word embeddings. **Requires GloVe file.**
+    * **Parameters:**
+        * `--parquet`: (Required) Path to the original Parquet file containing text data.
+        * `--candidates`: (Required) Path to the JSON file generated by the `find_pair` script.
+        * `--glove`: (Required) Path to the GloVe word embeddings text file (e.g., `glove.6B.100d.txt`).
+        * `--output`: (Required) Path to the JSON file for output evaluation results.
+    * **Usage:** `python dm/evaluation/cosine_glove_eval.py --parquet data.parquet --candidates candidates.json --glove path/to/glove.txt --output evaluation.json`
 
 * **`jaccard_eval.py`**
-    * **目的：** 使用基于分词（已移除停用词）的 Jaccard 相似度评估候选对。
-    * **参数：**
-        * `--parquet`: (必需) 包含文本数据的原始 Parquet 文件路径。
-        * `--candidates`: (必需) 由 `find_pair` 脚本生成的 JSON 文件路径。
-        * `--output`: (必需) 输出评估结果的 JSON 文件路径。
-        * `--threshold`: (可选) Jaccard 相似度阈值。默认值：`0.8`。
-    * **用法：** `python dm/evaluation/jaccard_eval.py --parquet data.parquet --candidates candidates.json --output evaluation.json`
+    * **Purpose:** Evaluate candidate pairs using Jaccard similarity based on tokenized words (with stopwords removed).
+    * **Parameters:**
+        * `--parquet`: (Required) Path to the original Parquet file containing text data.
+        * `--candidates`: (Required) Path to the JSON file generated by the `find_pair` script.
+        * `--output`: (Required) Path to the JSON file for output evaluation results.
+        * `--threshold`: (Optional) Jaccard similarity threshold. Default value: `0.8`.
+    * **Usage:** `python dm/evaluation/jaccard_eval.py --parquet data.parquet --candidates candidates.json --output evaluation.json`
 
 * **`levenshtein_eval.py`**
-    * **目的：** 使用基于原始文本的 Levenshtein 编辑距离比率评估候选对。
-    * **参数：**
-        * `--parquet`: (必需) 包含文本数据的原始 Parquet 文件路径。
-        * `--candidates`: (必需) 由 `find_pair` 脚本生成的 JSON 文件路径。
-        * `--output`: (必需) 输出评估结果的 JSON 文件路径。
-        * `--threshold`: (可选) 要包含在评估中的最小 Levenshtein 比率。默认值：`0.0`（包含所有）。
-    * **用法：** `python evaluation/levenshtein_eval.py --parquet data.parquet --candidates candidates.json --output evaluation.json`
+    * **Purpose:** Evaluate candidate pairs using Levenshtein edit distance ratio based on raw text.
+    * **Parameters:**
+        * `--parquet`: (Required) Path to the original Parquet file containing text data.
+        * `--candidates`: (Required) Path to the JSON file generated by the `find_pair` script.
+        * `--output`: (Required) Path to the JSON file for output evaluation results.
+        * `--threshold`: (Optional) Minimum Levenshtein ratio to include in the evaluation. Default value: `0.0` (include all).
+    * **Usage:** `python evaluation/levenshtein_eval.py --parquet data.parquet --candidates candidates.json --output evaluation.json`
 
 * **`tfidf_eval.py`**
-    * **目的：** 使用基于 TF-IDF 向量的余弦相似度评估候选对。
-    * **参数：**
-        * `--parquet`: (必需) 包含文本数据的原始 Parquet 文件路径。
-        * `--candidates`: (必需) 由 `find_pair` 脚本生成的 JSON 文件路径。
-        * `--output`: (必需) 输出评估结果的 JSON 文件路径。
-    * **用法：** `python evaluation/tfidf_eval.py --parquet data.parquet --candidates candidates.json --output evaluation.json`
+    * **Purpose:** Evaluate candidate pairs using cosine similarity based on TF-IDF vectors.
+    * **Parameters:**
+        * `--parquet`: (Required) Path to the original Parquet file containing text data.
+        * `--candidates`: (Required) Path to the JSON file generated by the `find_pair` script.
+        * `--output`: (Required) Path to the JSON file for output evaluation results.
+    * **Usage:** `python evaluation/tfidf_eval.py --parquet data.parquet --candidates candidates.json --output evaluation.json`

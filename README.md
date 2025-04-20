@@ -42,14 +42,14 @@ pip install pandas numpy datasets nltk scikit-learn python-Levenshtein tqdm
 
 1.  **下载数据：**
     ```bash
-    cd dm/data
-    python dm/data/get_data.py
+    cd data
+    python data/get_data.py
     # 这将在当前目录下创建 ./validation/validation.parquet 和 ./test/test.parquet 文件
     ```
 
 2.  **查找相似对（示例：在验证集内部使用 SimHash）：**
     ```bash
-    python dm/find_pair/lsh_simhash_inside.py \
+    python find_pair/lsh_simhash_inside.py \
         --input validation/validation.parquet \
         --output similar_pairs_simhash_validation.json \
         --bands 4 \
@@ -59,7 +59,7 @@ pip install pandas numpy datasets nltk scikit-learn python-Levenshtein tqdm
 
 3.  **评估找到的相似对（示例：使用 Jaccard 相似度）：**
     ```bash
-    python dm/evaluation/jaccard_eval.py \
+    python evaluation/jaccard_eval.py \
         --parquet validation/validation.parquet \
         --candidates similar_pairs_simhash_validation.json \
         --output evaluation_jaccard_validation.json
@@ -69,12 +69,12 @@ pip install pandas numpy datasets nltk scikit-learn python-Levenshtein tqdm
 
 ### 数据下载
 
-* **`dm/data/get_data.py`**
+* **`data/get_data.py`**
     * **目的：** 下载 `wiki40b/en` 数据集（验证集和测试集）并保存在本地。
     * **参数：** 无。脚本会自动保存到 `validation/validation.parquet` 和 `test/test.parquet`。
-    * **用法：** `python dm/data/get_data.py`
+    * **用法：** `python data/get_data.py`
 
-### 查找相似对 (`dm/find_pair/`)
+### 查找相似对 (`find_pair/`)
 
 * **`lsh_bit_sample_between.py`**
     * **目的：** 使用 LSH (Bit Sampling) 技术查找两个 Parquet 文件之间的相似项。
@@ -85,7 +85,7 @@ pip install pandas numpy datasets nltk scikit-learn python-Levenshtein tqdm
         * `--k`: (可选) 采样的位数 (`k_bits`)。默认值：`30`。
         * `--bands`: (可选) LSH 的 band 数量。默认值：`10`。 (`k` 必须能被 `bands` 整除)。
         * `--hd`: (可选) 最大汉明距离阈值。默认值：`3`。
-    * **用法：** `python dm/find_pair/lsh_bit_sample_between.py --input_a file_a.parquet --input_b file_b.parquet --output output.json`
+    * **用法：** `python find_pair/lsh_bit_sample_between.py --input_a file_a.parquet --input_b file_b.parquet --output output.json`
 
 * **`lsh_bit_sample_inside.py`**
     * **目的：** 使用 LSH (Bit Sampling) 技术在单个 Parquet 文件内部查找相似项。
@@ -95,7 +95,7 @@ pip install pandas numpy datasets nltk scikit-learn python-Levenshtein tqdm
         * `--k`: (可选) 采样的位数 (`k_bits`)。默认值：`30`。
         * `--bands`: (可选) LSH 的 band 数量。默认值：`10`。 (`k` 必须能被 `bands` 整除)。
         * `--hd`: (可选) 最大汉明距离阈值。默认值：`3`。
-    * **用法：** `python dm/find_pair/lsh_bit_sample_inside.py --input data.parquet --output output.json`
+    * **用法：** `python find_pair/lsh_bit_sample_inside.py --input data.parquet --output output.json`
 
 * **`lsh_minhash_between.py`**
     * **目的：** 使用 LSH (MinHash, 基于 GloVe 词嵌入) 查找两个 Parquet 文件之间的相似项。**需要 GloVe 文件。**
@@ -104,7 +104,7 @@ pip install pandas numpy datasets nltk scikit-learn python-Levenshtein tqdm
         * `--input_b`: (必需) 第二个 Parquet 文件的路径（索引集）。
         * `--glove`: (必需) GloVe 词嵌入文本文件的路径 (例如 `glove.6B.100d.txt`)。
         * `--output`: (必需) 输出 JSON 文件的路径。
-    * **用法：** `python dm/find_pair/lsh_minhash_between.py --input_a file_a.parquet --input_b file_b.parquet --output output.json`
+    * **用法：** `python find_pair/lsh_minhash_between.py --input_a file_a.parquet --input_b file_b.parquet --output output.json`
 
 * **`lsh_minhash_inside.py`**
     * **目的：** 使用 LSH (MinHash, 基于 GloVe 词嵌入) 在单个 Parquet 文件内部查找相似项。**需要 GloVe 文件。**
@@ -114,7 +114,7 @@ pip install pandas numpy datasets nltk scikit-learn python-Levenshtein tqdm
         * `--glove`: (必需) GloVe 词嵌入文本文件的路径 (例如 `glove.6B.100d.txt`)。
         * `--bands`: (可选) LSH 的 band 数量。默认值：`32`。 (`perm` 必须能被 `bands` 整除)。
         * `--perm`: (可选) MinHash 的置换数量 (`num_perm`)。默认值：`128`。
-    * **用法：** `python dm/find_pair/lsh_minhash_inside.py --input data.parquet --output output.json --glove path/to/glove.6B.100d.txt`
+    * **用法：** `python find_pair/lsh_minhash_inside.py --input data.parquet --output output.json --glove path/to/glove.6B.100d.txt`
 
 * **`lsh_simhash_between.py`**
     * **目的：** 使用 LSH (SimHash, 64位) 查找两个 Parquet 文件之间的相似项。
@@ -125,7 +125,7 @@ pip install pandas numpy datasets nltk scikit-learn python-Levenshtein tqdm
         * `--bands`: (可选) LSH 的 band 数量。默认值：`4`。 (`bands * rows` 必须等于 64)。
         * `--rows`: (可选) LSH 中每个 band 的行数。默认值：`16`。 (`bands * rows` 必须等于 64)。
         * `--hd`: (可选) 最大汉明距离阈值。默认值：`3`。
-    * **用法：** `python dm/find_pair/lsh_simhash_between.py --input_a file_a.parquet --input_b file_b.parquet --output output.json`
+    * **用法：** `python find_pair/lsh_simhash_between.py --input_a file_a.parquet --input_b file_b.parquet --output output.json`
 
 * **`lsh_simhash_inside.py`**
     * **目的：** 使用 LSH (SimHash, 64位) 在单个 Parquet 文件内部查找相似项。
@@ -135,9 +135,9 @@ pip install pandas numpy datasets nltk scikit-learn python-Levenshtein tqdm
         * `--bands`: (可选) LSH 的 band 数量。默认值：`4`。 (`bands * rows` 必须等于 64)。
         * `--rows`: (可选) LSH 中每个 band 的行数。默认值：`16`。 (`bands * rows` 必须等于 64)。
         * `--hd`: (可选) 最大汉明距离阈值。默认值：`3`。
-    * **用法：** `python dm/find_pair/lsh_simhash_inside.py --input data.parquet --output output.json`
+    * **用法：** `python find_pair/lsh_simhash_inside.py --input data.parquet --output output.json`
 
-### 评估相似对 (`dm/evaluation/`)
+### 评估相似对 (`evaluation/`)
 
 * **`cosine_glove_eval.py`**
     * **目的：** 使用基于 GloVe 词嵌入的余弦相似度评估候选对。**需要 GloVe 文件。**
@@ -164,7 +164,7 @@ pip install pandas numpy datasets nltk scikit-learn python-Levenshtein tqdm
         * `--candidates`: (必需) 由 `find_pair` 脚本生成的 JSON 文件路径。
         * `--output`: (必需) 输出评估结果的 JSON 文件路径。
         * `--threshold`: (可选) 要包含在评估中的最小 Levenshtein 比率。默认值：`0.0`（包含所有）。
-    * **用法：** `python dm/evaluation/levenshtein_eval.py --parquet data.parquet --candidates candidates.json --output evaluation.json`
+    * **用法：** `python evaluation/levenshtein_eval.py --parquet data.parquet --candidates candidates.json --output evaluation.json`
 
 * **`tfidf_eval.py`**
     * **目的：** 使用基于 TF-IDF 向量的余弦相似度评估候选对。
@@ -172,4 +172,4 @@ pip install pandas numpy datasets nltk scikit-learn python-Levenshtein tqdm
         * `--parquet`: (必需) 包含文本数据的原始 Parquet 文件路径。
         * `--candidates`: (必需) 由 `find_pair` 脚本生成的 JSON 文件路径。
         * `--output`: (必需) 输出评估结果的 JSON 文件路径。
-    * **用法：** `python dm/evaluation/tfidf_eval.py --parquet data.parquet --candidates candidates.json --output evaluation.json`
+    * **用法：** `python evaluation/tfidf_eval.py --parquet data.parquet --candidates candidates.json --output evaluation.json`

@@ -106,8 +106,8 @@ nltk.download('stopwords')
     * **参数：**
         * `--input_a`: (必需) 第一个 Parquet 文件的路径（查询集）。
         * `--input_b`: (必需) 第二个 Parquet 文件的路径（索引集）。
+        * `--glove`: (必需) GloVe 词嵌入文本文件的路径 (例如 `glove.6B.100d.txt`)。
         * `--output`: (必需) 输出 JSON 文件的路径。
-        * *(隐式)* 假设 `glove.6B/glove.6B.100d.txt` 文件存在于执行目录下。如果路径不同，请修改脚本内 `_load_glove` 函数中的路径。
     * **用法：** `python dm/find_pair/lsh_minhash_between.py --input_a file_a.parquet --input_b file_b.parquet --output output.json`
 
 * **`lsh_minhash_inside.py`**
@@ -158,7 +158,6 @@ nltk.download('stopwords')
         * `--parquet`: (必需) 包含文本数据的原始 Parquet 文件路径。
         * `--candidates`: (必需) 由 `find_pair` 脚本生成的 JSON 文件路径。
         * `--output`: (必需) 输出评估结果的 JSON 文件路径。
-        * `--threshold`: (可选) Jaccard 相似度阈值（当前逻辑似乎未使用，但参数存在）。默认值：`0.8`。
     * **用法：** `python dm/evaluation/jaccard_eval.py --parquet data.parquet --candidates candidates.json --output evaluation.json`
 
 * **`levenshtein_eval.py`**

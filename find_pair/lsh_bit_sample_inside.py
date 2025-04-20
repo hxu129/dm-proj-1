@@ -1,92 +1,104 @@
 import pandas as pd
 import numpy as np
 import re
-import hashlib
 import json
 import time
 import argparse
 import sys
-from itertools import combinations
 from collections import defaultdict
 from tqdm import tqdm
+import nltk
+import hashlib
 
+# ---------- clean / embed / minhash ----------
+def _clean(txt: str) -> str:
+    txt = re.sub(r'<.*?>', '', str(txt))
+    txt = re.sub(r'[^a-zA-Z\s]', '', txt).lower()
+    return ' '.join(txt.split())
 
-# ---------- text → features → Bit‑Sampling ----------
-def _preprocess(txt: str) -> str:
-    txt = re.sub(r'[^a-z0-9\s]+', '', str(txt).lower())
-    return re.sub(r'\s+', ' ', txt).strip()
+def _load_glove(path: str) -> dict[str, np.ndarray]:
+    emb: dict[str, np.ndarray] = {}
+    with open(path, 'r', encoding='utf-8') as f:
+        for line in f:
+            parts = line.split()
+            emb[parts[0]] = np.asarray(parts[1:], dtype='float32')
+    return emb
 
+def _vec(txt: str, emb: dict[str, np.ndarray]) -> np.ndarray:
+    vecs = [emb[w] for w in txt.split() if w in emb]
+    return np.mean(vecs, axis=0) if vecs else np.zeros(100, dtype='float32')
 
-def _features(txt: str) -> list[str]:
-    return txt.split()
+def _mh(vec: np.ndarray, num_perm: int = 128) -> list[int]:
+    sig = [2**64 - 1] * num_perm
+    for v in vec:
+        if v == 0:
+            continue
+        feature = str(v).encode('utf-8')
+        for j in range(num_perm):
+            h = hashlib.sha1(feature + j.to_bytes(2, 'little')).hexdigest()
+            hv = int(h, 16)
+            if hv < sig[j]:
+                sig[j] = hv
+    return sig
 
-
-def _bit_sample_hash(feats: list[str], base_bits: int = 128, k_bits: int = 30) -> np.ndarray:
-    vec = np.zeros(base_bits, dtype=np.int32)
-    for f in feats:
-        hv = int.from_bytes(hashlib.md5(f.encode()).digest(), 'big')
-        for i in range(base_bits):
-            vec[base_bits - 1 - i] += 1 if (hv >> i) & 1 else -1
-    bits = (vec > 0).astype(np.uint8)
-    idx = np.linspace(0, base_bits - 1, k_bits, dtype=int)
-    return bits[idx]
-
-
-def _hamming(a: np.ndarray, b: np.ndarray) -> int:
-    return int(np.sum(a != b))
-
-
-# ---------- LSH helpers ----------
-def _build_buckets(hashes: list[np.ndarray], bands: int, rows: int) -> list[dict]:
+# ---------- LSH ----------
+def _build(hashes: list[list[int]], bands: int, rows: int) -> list[dict]:
     buckets = [{} for _ in range(bands)]
-    for idx, h in enumerate(hashes):
+    for idx, sig in enumerate(hashes):
         for b in range(bands):
-            key = tuple(h[b * rows:(b + 1) * rows])
+            key = tuple(sig[b * rows:(b + 1) * rows])
             buckets[b].setdefault(key, []).append(idx)
     return buckets
 
+def _query(sig: list[int], buckets: list[dict], bands: int, rows: int) -> set[int]:
+    c = set()
+    for b in range(bands):
+        key = tuple(sig[b * rows:(b + 1) * rows])
+        c.update(buckets[b].get(key, []))
+    return c
+
+def _num(wid: str) -> int:
+    m = re.search(r'\d+', wid)
+    return int(m.group()) if m else 0
 
 # ---------- pipeline ----------
 def main(parquet_path: str,
          output_json: str,
-         text_col: str = 'text',
-         base_bits: int = 128,
-         k_bits: int = 30,
-         bands: int = 10,
-         hd_th: int = 3):
+         glove_path: str,
+         bands: int = 32,
+         num_perm: int = 128):
 
-    assert k_bits % bands == 0, 'k_bits must be divisible by bands'
-    rows = k_bits // bands
+    rows = num_perm // bands
+    if num_perm % bands:
+        sys.exit('num_perm must be divisible by bands')
+
+    nltk.download('stopwords', quiet=True)
     t0 = time.time()
 
-    df = pd.read_parquet(parquet_path, columns=[text_col, 'wikidata_id'])
+    df = pd.read_parquet(parquet_path, columns=['text', 'wikidata_id'])
     if df.empty:
         sys.exit('input parquet is empty')
 
-    hashes = [_bit_sample_hash(_features(_preprocess(t)), base_bits, k_bits)
-              for t in tqdm(df[text_col], disable=len(df) < 1000)]
+    clean_txt = df['text'].apply(_clean)
+    glove = _load_glove(glove_path)
 
-    buckets = _build_buckets(hashes, bands, rows)
+    vecs = clean_txt.apply(lambda t: _vec(t, glove))
+    sigs = [_mh(v, num_perm) for v in tqdm(vecs, disable=len(df) < 1000)]
 
-    cand = set()
-    for band_dict in buckets:
-        for idxs in band_dict.values():
-            if len(idxs) > 1:
-                cand.update(combinations(sorted(idxs), 2))
+    buckets = _build(sigs, bands, rows)
 
-    similar = defaultdict(set)
-    for i, j in cand:
-        if _hamming(hashes[i], hashes[j]) < hd_th:
-            a, b = df['wikidata_id'][i], df['wikidata_id'][j]
-            key, val = (a, b) if int(re.sub(r'\D', '', a) or 0) < int(re.sub(r'\D', '', b) or 0) else (b, a)
-            similar[key].add(val)
+    sim = defaultdict(set)
+    for i, sig in tqdm(list(enumerate(sigs)), disable=len(sigs) < 500):
+        for j in _query(sig, buckets, bands, rows):
+            if j <= i:
+                continue
+            sim[df['wikidata_id'][i]].add(df['wikidata_id'][j])
 
     res = [
         {
             'wikidata_id': k,
-            'similar_items': sorted(v, key=lambda x: int(re.sub(r'\D', '', x) or 0))
-        }
-        for k, v in similar.items()
+            'similar_items': sorted(v, key=_num)
+        } for k, v in sim.items()
     ]
 
     with open(output_json, 'w', encoding='utf-8') as f:
@@ -94,17 +106,18 @@ def main(parquet_path: str,
 
     print(f'done: {len(res)} groups, {time.time() - t0:.1f}s')
 
-
+# ---------- CLI ----------
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--input', required=True, help='parquet file')
-    parser.add_argument('--output', required=True, help='output json')
-    parser.add_argument('--k', type=int, default=30)
-    parser.add_argument('--bands', type=int, default=10)
-    parser.add_argument('--hd', type=int, default=3)
-    args = parser.parse_args()
+    p = argparse.ArgumentParser()
+    p.add_argument('--input', required=True, help='parquet file')
+    p.add_argument('--output', required=True, help='output json')
+    p.add_argument('--glove', required=True, help='GloVe txt file')
+    p.add_argument('--bands', type=int, default=32)
+    p.add_argument('--perm', type=int, default=128)
+    args = p.parse_args()
 
-    main(args.input, args.output,
-         k_bits=args.k,
+    main(args.input,
+         args.output,
+         args.glove,
          bands=args.bands,
-         hd_th=args.hd)
+         num_perm=args.perm)

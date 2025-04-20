@@ -7,7 +7,7 @@
 项目主要包含三个目录：
 
 1.  `data/`：包含下载所需数据集的脚本。
-    * `get_data.py`：从 Hugging Face 的 `datasets` 库下载 `wiki40b/en` 数据集（验证集和测试集），并将其保存为 Parquet 文件。
+    * 请将下载好的parquet文件分别放在`data/test`和`data/validation`文件夹下，`merge_parquet.py`脚本会合并分片文件。
 2.  `find_pair/`：包含实现不同 LSH 算法以查找候选相似对的脚本。
     * 以 `_inside.py` 结尾的脚本用于查找**单个**输入数据集**内部**的相似对。
     * 以 `_between.py` 结尾的脚本用于查找**两个**输入数据集**之间**的相似对（一个作为查询集，另一个作为索引集）。
@@ -154,7 +154,7 @@ pip install pandas numpy datasets datasketch nltk scikit-learn python-Levenshtei
         * `--parquet`: (必需) 包含文本数据的原始 Parquet 文件路径。
         * `--candidates`: (必需) 由 `find_pair` 脚本生成的 JSON 文件路径。
         * `--output`: (必需) 输出评估结果的 JSON 文件路径。
-        * `--threshold`: (可选) Jaccard 相似度阈值（当前逻辑似乎未使用，但参数存在）。默认值：`0.8`。
+        * `--threshold`: (可选) Jaccard 相似度阈值。默认值：`0.8`。
     * **用法：** `python dm/evaluation/jaccard_eval.py --parquet data.parquet --candidates candidates.json --output evaluation.json`
 
 * **`levenshtein_eval.py`**
